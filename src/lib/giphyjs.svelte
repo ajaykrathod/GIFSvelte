@@ -1,0 +1,124 @@
+<script>
+// @ts-nocheck
+
+    import { Grid } from '@giphy/react-components'
+    import { GiphyFetch } from '@giphy/js-fetch-api'
+import { renderGrid } from '@giphy/js-components';
+import { validate_each_argument } from 'svelte/internal';
+import Card from './card.svelte';
+import Library from './library.svelte';
+
+    const gf = new GiphyFetch(import.meta.env.VITE_GIPHY_API_KEY)
+    $: offset = 0;
+    async function getGIF(offset) {
+        const gifs = await gf.trending({limit:10, offset:offset})
+        return gifs.data
+    }
+    var listGIFURL = []
+    var listGIF = []
+    $: selected = {};
+    var promise = getGIF(offset)
+
+    window.onscroll = function(event) {
+        if((window.innerHeight + window.scrollY) >= document.body.offsetHeight){
+            offset = offset + 10;
+            
+            var promise = getGIF(offset)
+            promise
+            .then(results => {
+                results.map((value,index) => {
+                    listGIF.push(value)
+                    listGIFURL.push(new URL(value.images.original.mp4).href)
+                    listGIFURL = [...listGIFURL];
+                    listGIF = [...listGIF];
+                })
+            })
+            .catch(err => console.log(err))
+        }
+    }
+    promise
+    .then(results => {
+        results.map((value,index) => {
+            listGIF.push(value)
+            listGIFURL.push(new URL(value.images.original.mp4).href)
+            listGIFURL = [...listGIFURL];
+            listGIF = [...listGIF];
+        })
+    })
+    .catch(err => console.log(err))
+  
+  const handleMouseEnter = (result) => {
+        listGIF.map((value,index) => {
+                if(new URL(value.images.original.mp4).href == result){
+                    selected = value;
+                    console.log(selected);
+                }
+        })
+  }
+</script>
+<div>
+    {#each listGIFURL as result}
+        {#if result}
+            <div class="container">
+                <video on:mouseover="{() => handleMouseEnter(result)}" src={result} autoplay={true} loop muted/>
+                <div class="texts">
+                        {#if selected != {}}
+                            <Card props={selected}/>
+                        {/if}
+                        
+                </div>
+            </div>
+        {/if}
+    {/each}
+</div>
+
+<style>
+    div {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    video {
+        width: 20vw;
+        margin: 2vh 1vw;
+    }
+    
+    .container {
+        height: auto;
+        border-radius: 30px;
+        margin: 2vh 2vw;
+        border: 1px solid gray;
+    }
+    .container:hover video {
+        visibility: none;
+        opacity: 0;
+        transition: all 3s ease-in-out;
+    }
+    .texts {
+        position: absolute;
+        width: 20vw;
+        display: flex;
+        border-radius: 30px;
+        flex-direction: column;
+        justify-content: center;
+        align-items: stretch;
+        visibility: none;
+        opacity: 0;
+    }
+    .container:hover .texts {
+        visibility: visible;
+        opacity: 1;
+        transition: all 3s ease-in-out;
+        
+    }
+
+    @media (max-width:750px){
+        video {
+            width: 37vw;
+        }
+        .texts {
+            width: 37vw;
+        }
+    }
+</style>
